@@ -63,3 +63,127 @@ $$
     - The two-way arrows indicate bidirectionality and the depicted hidden states are assumed to be the concatenated forwards+backwards states
   - bidirectional RNNs are only applicable if you have access to **the entire input sequence** (so they are **not** applicable to Language Modeling)
   - Bidirectionality is powerful if you have entire input sequence!
+
+### Multi-layer RNN
+
+- Multi-layer allows the network to compute more complex representations, with different layers computing different levels of features
+- Multi-layer RNNs are also called stacked RNNs
+![multi](pic/L5_pic5.jpg)
+- in practice:
+  - high-performing RNNs are usually multi-layer
+  - often 2 layers is a lot better than 3, and 3 layers might be a little better than 2
+  - skip-connections/dense-connections are needed to train deeper RNNs(e.g., 8 layers)
+  - Transformer-based networks are usually deeper, like 12 or 24 layers
+
+## Machine Translation
+
+- It's the task of translating a sentence _x_ from one language (_the source language_) to a sentence _y_ in another language (_the target language_)
+
+- Statistical Machine Translation:
+  - core idea: learn a **probabilistic model** from **data**
+  - we want to find _best English sentence_ _y_, given _French sentence x_:
+$$
+  argmax_y P(y|x) = argmax_y P(x|y) P(y)
+$$
+  we break this down into _two componets_ to be learned separately  
+    - $P(x|y)$ models how words and phrases should be translated and it's learned from parallel data (pairs of human-translated French/English sentences)
+      - introduce latent _a_ variable into the model: $P(x,a|y)$
+      - a is the **alignment**, i.e. word-level correspondence between source sentence _x_ and target sentence _y_
+      - alignment could be very complicated because of typological differences between languages!
+    - $P(y)$ models how to write good English and it's learned from monolingual data
+  - **Decoding**
+    - 由于不同语言的语序是不一样的，所以我们可以使用decoding技术
+    - 先翻译每个词(可能有多种翻译)，再将翻译过来的词按各种不同顺序进行组合，最后在得到的句子中，选择概率最大的
+
+- Neural Machine Translation:
+  - It's a way to do Machine Translation with a **single** end-to-end neural network
+  - The neural network architecture is called a **sequence-to-sequence** model (**seq2seq**) and it involves **two RNNs** (encoder RNN and decoder RNN)
+![NMT](pic/L5_pic6.jpg)
+  - seq2seq is versatile:
+    - summarization (long text $\rightarrow$ short text)
+    - dialogue (previous utterances $\rightarrow$ next utterance)
+    - parsing (input text $\rightarrow$ output parse as sequence)
+    - code generation (natural language $\rightarrow$ python code)
+  - **Conditional Language Model**:
+    - it's predicting the next word of the target sentence _y_ and _conditioned_ on the source sentence _x_
+    - it direcyly calculates:
+$$
+  P(y|x) = P(y_1|x) P(y_2|y_1,x) \dots P(y_T | y_1, \dots, y_{T-1},x)
+$$
+  - Training:
+    - get a big parallel corpus
+    - and:
+![NMT2](pic/L5_pic7.jpg)
+    - Backpropagation operates "end-to-end" so all parameters can be updated in one go
+    - **greedy decoding**: take most probable word on each step
+    - **beam search decoding**:
+      - on each step of decoder, keep track of **the _k_ most probable partial translations** (which we call _hypotheses_)
+      - _k_ is the _beam size_ (in practice ar*ound 5 to 10)
+      - a hypothesis $y_1, \dots, y_t$ has a **score** which is its log probability:
+$$
+  score(y_1,\dots,y_t) = logP_{LM}(y_1,\dots,y_t | x) \\
+  = \sum_{i=1}^t log P_{LM}(y_i|y_1,\dots,y_{i-1},x)
+$$
+        - scores are all **negative**, and higher score is better
+        - we search for **high-scoring hypotheses**, tracking top _k_ on each step
+      - stopping criterion: when a hypothesis produces &lt;END&gt;, that hypothesis is _complete_
+        - we continue beam search until we:
+          - we reach timestep _T_ (where _T_ is some pre-defined cutoff)
+          - we have at least _n_ completed hypotheses (where _n_ is pre-defined cutoff)
+      - it might not find the optimal answer but it's much more efficient
+      - problem: longer hypotheses have lower scores
+        - so we need to **normalize by length**:
+$$
+  \frac{1}{t} \sum_{i=1}^t log P_{LM}(y_i|y_1,\dots,y_{i-1},x)
+$$
+  - Evaluating
+    - BLEU(Bilingual Evaluation Understudy)
+      - compare the machine-written translation to one or several human-written translation(s), and computes a similarity score based on:
+        - n-gram precision (usually 1 to 4)
+        - plus a penalty for too-short system translations
+      - useful but imperfect
+        - there are many valid ways to translate a sentence
+  - Multi-layer LSTM model
+![NMT3](pic/L5_pic8.jpg)
+    - the hidden states from RNN layer _i_ are the inputs to RNN layer _i+1_
+  - Advantages:
+    - better performance
+      - more fluent
+      - better use of context
+      - better use of phrase similarities
+    - a single neural network to be optimized end-to-end
+      - nu subcomponents to be individually optimized
+    - requires much less human engineering effort
+      - no feature engineering
+      - same method for all language pairs
+  - Disadvantages
+    - less interpretable
+      - hard to debug
+    - difficult to control
+      - can't easily specify rules or guidelines for translation
+      - safety concerns
+- Remaining Difficulties:
+  - _out-of-vocabulary_ words
+  - _domain mismatch_ between train and test data
+  - maintaining _context_ over longer text
+  - _low-resource_ language pairs
+  - failures to accurately capture _sentence meaning_
+  - _pronoun (or zero pronoun) resolution_  errors
+  - _morphological agreement_ errors
+  - _bias_ in training data
+
+## Attention
+
+- the last hidden state of encoder RNN needs to capture _all_ source sentence so it's actually a information bottleneck!
+- attention: on each step of the decoder, **use _direct_ connection to the encoder** to focus on **a particular part** of the source sequence  
+  (look back at the source to get information directly from it)
+- architecture:
+![attention](pic/L5_pic9.jpg)
+  - attention score is the **dot product** of decoder with **each** encoder (like similarity)
+  - taking **softmax** to turn the scores into a probability distribution
+  - on this decoder timestep, we're mostly focusing on the fourth encoder hidden state ("_pie_")  
+  (the fourth encoder hidden state is most like the current decoder state, so now I need to translate mainly based on the fourth word)
+  - use the attention distribution to take a **weighted sum** of the _encoder hidden states_
+  - the attention output mostly contains information from the hidden states that received **high attention**
+  - concatenate attention output with _decoder hidden state_, then use to compute $ \hat{y_1} $ as before
+  - sometimes we take the attention output from the previous step, and also feed it into the decoder(along with the usual decoder input)
