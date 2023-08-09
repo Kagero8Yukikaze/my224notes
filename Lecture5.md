@@ -187,3 +187,57 @@ $$
   - the attention output mostly contains information from the hidden states that received **high attention**
   - concatenate attention output with _decoder hidden state_, then use to compute $ \hat{y_1} $ as before
   - sometimes we take the attention output from the previous step, and also feed it into the decoder(along with the usual decoder input)
+
+- in equations:
+  - we have **encoder hidden states** $h_1,\dots, h_N \in \mathbb{R}^h$
+  - on timestep _t_, we have **decoder hidden state** $s_t \in \mathbb{R}^h$
+  - we get the **attention scores** $e^t$ for this step:
+$$
+  e^t = [s_t^T h_1, \dots, s_t^T h_N] \in \mathbb{R}^N
+$$
+  - we take softmax to get the **attention distribution** $\alpha^t$ for this step (this is a probability distribution and sums to 1):
+$$
+  \alpha  ^t = softmax(e^t) \in \mathbb{R}^N
+$$
+  - we use $\alpha ^t$ to take a weighted sum of the encoder hidden states to get **attention output** $a^t$:
+$$
+  a_t = \sum_{i=1}^N \alpha_i^t h_i \in \mathbb{R}^h
+$$
+  - finally we concatenate the **attention output** $a_t$ with the **decoder hidden state** $s_t$ and proceed as in the non-attention seq2seq model:
+$$
+  [a_t; s_t] \in \mathbb{R}^{2h}
+$$
+
+- advantages:
+  - significantly improves NMT performance
+  - provides more "human-like" model for the MT process
+  - solves the bottleneck problem
+  - helps with the vanishing gradient problem
+  - provides some interpretability
+    - by inspecting attention distribution, we can see what the decoder was focusing on
+    - we get (soft) alignment for free (the network learned by itself)
+
+- several attention variants
+  - typical ways:
+    - some _values_ $h_1,\dots, h_N \in \mathbb{R}^{d_1}$ and a _query_ $s \in \mathbb{R}^{d_2}$
+    - computing the _attention scores_ $e \in \mathbb{R}^N$
+    - taking softmax to get _attention distribution_ $\alpha = softmax(e) \in \mathbb{R}^N$
+    - using _attention distribution_ to take weighted sum of values, thus obtaining the _attention output_ (sometimes called the _context vector_) $a = \sum_{i=1}^N \alpha^i h_i \in \mathbb{R}^{d_1}$
+  - there are several ways to calculate _attention scores_:
+    - basic dot-product attention: $e_i = s^T h_i \in \mathbb{R}$
+      - assumes $d_1=d_2$
+    - multiplicative attention: $e_i = s^T W h_i \in \mathbb{R}$
+      - $W \in \mathbb{R}^{d_2 \times d_1}$ is a weight matrix
+      - this makes the model to learn to focus on just a part of $s$ and $h_i$, instead of the entirety
+      - too many parameters
+    - reduced rank multiplicative attention: $e_i = s^T (U^T V) h_i = (Us)^T (V h_i)$
+      - for low rank matrices $U \in \mathbb{R}^{k \times d_2}$, $V \in \mathbb{R}^{k \times d_1}$, $k << d_1, d_2$
+      - less parameters
+    - additive attention: $e_i = v^T tanh(W_1 h_i + W_2 s) \in \mathbb{R}$
+      - $W_1 \in \mathbb{R}^{d_3 \times d_1} $, $W_2 \in \mathbb{R}^{d_3 \times d_2} $ are weight matrices and $v \in \mathbb{R}^{d_3}$ is a weight vector
+      - $d_3$ (the attention dimensionality) is a hyperparameter
+- Attention is a _general_ deep learning technique
+  - more general definition of attention:  
+    given a set of vector _values_, and a vector _query_, **attention** is a technique to compute a _weighted sum_ of the values, dependent on the query (query _attends_ to the values)
+  - the weighted sum is a _selective summary_ of the information contained in the values, where the query determines which values to focus on (pretty much like the RAM)
+  - attention is a way to obtain a _fixed-size representation of an arbitrary set of representations_ (the values), dependent on some other representation (the query)
