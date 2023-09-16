@@ -130,7 +130,7 @@
 
 - Parameter Initialization
   - 0矩阵的对称性质可能导致一系列问题
-  - initialize **all other weights** ~ U(-r,r)
+  - initialize **all other weights** $\sim U(-r,r)$
   - Xavier initialization ($n_{in}$ is previous layer size and $n_{out}$ is next layer size):
 
 $$
