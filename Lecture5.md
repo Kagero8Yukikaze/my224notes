@@ -12,7 +12,7 @@
   - the gates are also vectors length _n_
   - on each timestep, each element of the gates can be open(1), closed(0), or somewhere in-between
   - the gates' value is computed base on the current context
-- We have a sequence of inputs &x^{(t)}&, and we will compute a sequence of hidden states $h^{(t)}$ and cell state $c^{(t)}$. On timestep _t_:
+- We have a sequence of inputs $x^{(t)}$, and we will compute a sequence of hidden states $h^{(t)}$ and cell state $c^{(t)}$. On timestep _t_:
 $$
     \bold{f}^{(t)} = \sigma(\bold{W}_f \bold{h}^{(t-1)} + \bold{U}_f \bold{x}^{(t)} + \bold{b}_f)\\
     \bold{i}^{(t)} = \sigma(\bold{W}_i \bold{h}^{(t-1)} + \bold{U}_i \bold{x}^{(t)} + \bold{b}_i)\\
